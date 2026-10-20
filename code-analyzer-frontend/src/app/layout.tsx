@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Sidebar from '@/app/components/Sidebar';
 import Topbar from '@/app/components/Topbar';
 import './globals.css';
+import { AuthProvider } from '@/context/AuthContext';
 
 export const metadata: Metadata = {
   title: 'SaaS Code Analyzer',
@@ -19,13 +20,15 @@ export default function RootLayout({
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" />
       </head>
       <body>
-        <div className="app">
-          <Sidebar />
-          <Topbar />
-          <main className="app__main">
-            {children}
-          </main>
-        </div>
+        <AuthProvider>
+          <div className="app">
+            <Sidebar />
+            <Topbar />
+            <main className="app__main">
+              {children}
+            </main>
+          </div>
+        </AuthProvider>
       </body>
     </html>
   );
