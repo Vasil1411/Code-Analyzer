@@ -1,7 +1,47 @@
+'use client';
+
+import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { useProjects } from '@/hooks/useProjects';
+import { ProjectCategory } from '@/app/types';
+
 export default function NewProjectPage() {
+  const router = useRouter();
+  const { createProject } = useProjects();
+
+  const [name, setName] = useState('');
+  const [category, setCategory] = useState<ProjectCategory>('Security');
+  const [description, setDescription] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setSubmitting(true);
+
+    try {
+      await createProject({
+        name,
+        category,
+        description: description.trim() || undefined,
+      });
+
+      setName('');
+      setCategory('Security');
+      setDescription('');
+
+      router.push('/dashboard');
+      router.refresh();
+    } catch (err: any) {
+      setError(err.message || 'Възникна грешка при създаването на проекта.');
+      setSubmitting(false);
+    }
+  };
+
   return (
     <section className="view view--default" id="new-project">
-      {/* Центрираме заглавието и текста чрез flex-column & align-items: center */}
       <header className="view__header" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', marginBottom: 'var(--space-6)' }}>
         <div>
           <p className="view__eyebrow" style={{ textAlign: 'center' }}>Workspace</p>
@@ -10,33 +50,72 @@ export default function NewProjectPage() {
         </div>
       </header>
 
-      {/* Центрирана форма */}
       <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
         <div className="table-card" style={{ width: '100%', maxWidth: '640px', padding: 'var(--space-6)' }}>
-          <form style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)', width: '100%' }}>
+          
+          {error && (
+            <div style={{ padding: '10px', marginBottom: '15px', background: 'rgba(255,0,0,0.1)', color: 'red', borderRadius: '4px' }}>
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)', width: '100%' }}>
             
             <div className="field" style={{ width: '100%' }}>
               <label className="field__label" htmlFor="repo-name">Repository Name / Slug</label>
-              <input className="field__input" id="repo-name" type="text" placeholder="e.g. acme/payment-api" required style={{ width: '100%' }} />
+              <input 
+                className="field__input" 
+                id="repo-name" 
+                type="text" 
+                placeholder="e.g. acme/payment-api" 
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required 
+                style={{ width: '100%' }} 
+              />
             </div>
 
             <div className="field" style={{ width: '100%' }}>
               <label className="field__label" htmlFor="repo-category">Category / Ruleset</label>
-              <select className="field__input" id="repo-category" defaultValue="security" style={{ width: '100%' }}>
-                <option value="security">Security</option>
-                <option value="clean-code">Clean Code</option>
-                <option value="performance">Performance</option>
+              <select 
+                className="field__input" 
+                id="repo-category" 
+                value={category}
+                onChange={(e) => setCategory(e.target.value as ProjectCategory)}
+                style={{ width: '100%' }}
+              >
+                <option value="Security">Security</option>
+                <option value="Clean Code">Clean Code</option>
+                <option value="Performance">Performance</option>
+                <option value="Architecture">Architecture</option>
               </select>
             </div>
 
             <div className="field" style={{ width: '100%' }}>
               <label className="field__label" htmlFor="repo-desc">Description</label>
-              <textarea className="field__input" id="repo-desc" rows={4} placeholder="Brief summary of the repository..." style={{ width: '100%' }} />
+              <textarea 
+                className="field__1input" 
+                id="repo-desc" 
+                rows={4} 
+                placeholder="Brief summary of the repository..." 
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                style={{ width: '100%', padding: '8px', background: 'inherit', color: 'inherit', border: '1px solid var(--border-color, #ccc)' }} 
+              />
             </div>
 
             <div style={{ display: 'flex', gap: 'var(--space-3)', marginTop: 'var(--space-2)', width: '100%' }}>
-              <button className="btn btn--primary" type="submit" style={{ flex: 1, padding: '12px' }}>Connect Project</button>
-              <a className="btn btn--secondary" href="/dashboard" style={{ padding: '12px 24px', textAlign: 'center' }}>Cancel</a>
+              <button 
+                className="btn btn--primary" 
+                type="submit" 
+                disabled={submitting}
+                style={{ flex: 1, padding: '12px', cursor: submitting ? 'not-allowed' : 'pointer' }}
+              >
+                {submitting ? 'Connecting...' : 'Connect Project'}
+              </button>
+              <Link className="btn btn--secondary" href="/dashboard" style={{ padding: '12px 24px', textAlign: 'center' }}>
+                Cancel
+              </Link>
             </div>
 
           </form>
