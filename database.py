@@ -3,6 +3,7 @@ import uuid
 import json
 from datetime import datetime
 
+
 DB_NAME = "code_analyzer.db"
 
 def get_connection():
@@ -139,6 +140,30 @@ def delete_project_with_cascade(project_id: str, user_id: str):
     finally:
         conn.close()
 
+
+def update_project_in_db(project_id: str, user_id: str, name: str, category: str, description: str):
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("SELECT user_id FROM projects WHERE id = ?", (project_id,))
+        row = cursor.fetchone()
+        if not row:
+            return False, "Project not found."
+        if row["user_id"] != user_id:
+            return False, "Unauthorized."
+            
+        cursor.execute(
+            "UPDATE projects SET name = ?, category = ?, description = ? WHERE id = ? AND user_id = ?",
+            (name, category, description, project_id, user_id)
+        )
+        conn.commit()
+        return True, "Project updated successfully."
+    except Exception as e:
+        return False, str(e)
+    finally:
+        conn.close()
+        
+    
 # --- АНАЛИЗИ ---
 def save_analysis_to_db(code: str, issues: list, project_id: str, user_id: str):
     conn = get_connection()
@@ -174,3 +199,45 @@ def get_project_analyses(project_id: str):
             pass
         result.append(item)
     return result
+
+def get_single_analysis_from_db(project_id: str, analysis_id: str, user_id: str):
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    # Проверяваме каква роля има потребителят в момента
+    cursor.execute("SELECT role FROM users WHERE id = ?", (user_id,))
+    user_row = cursor.fetchone()
+    is_admin = user_row and dict(user_row).get("role") == "admin"
+    
+    if is_admin:
+        # Ако е админ, взимаме анализа директно по ID и project_id (без да гледаме чий е проектът)
+        cursor.execute(
+            """
+            SELECT * FROM analyses 
+            WHERE id = ? AND project_id = ?
+            """,
+            (analysis_id, project_id)
+        )
+    else:
+        # Ако е обикновен разработчик, проверяваме и дали проектът е негов
+        cursor.execute(
+            """
+            SELECT a.* FROM analyses a
+            JOIN projects p ON a.project_id = p.id
+            WHERE a.id = ? AND a.project_id = ? AND p.user_id = ?
+            """,
+            (analysis_id, project_id, user_id)
+        )
+        
+    row = cursor.fetchone()
+    conn.close()
+    
+    if not row:
+        return None
+        
+    item = dict(row)
+    try:
+        item["issues"] = json.loads(item["issues"])
+    except Exception:
+        pass
+    return item

@@ -7,6 +7,7 @@ ALLOWED_CATEGORIES = ["Security", "Clean Code", "Performance", "Architecture"]
 class RegisterPayload(BaseModel):
     email: str = Field(..., description="User email address")
     password: str = Field(..., min_length=6, description="Password must be at least 6 characters long")
+    role: Optional[str] = Field(default="developer", description="User role")
 
 class LoginPayload(BaseModel):
     email: str
@@ -26,4 +27,4 @@ class ProjectCreate(BaseModel):
 
 class CodePayload(BaseModel):
     code: str = Field(..., min_length=1, description="Python source code to analyze")
-    project_id: str = Field(..., min_length=5, description="Valid Firebase project ID")
+    project_id: str = Field(..., min_length=5, description="Valid project ID")
