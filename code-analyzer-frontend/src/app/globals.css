@@ -1,0 +1,15 @@
+/* 1. Първо зареждаме променливите и нулирането */
+@import './styles/variables.css';
+@import './styles/reset.css';
+
+/* 2. Общите лейаут и основни стилове */
+@import './styles/layout.css';
+@import './styles/main.css';
+@import './styles/navigation.css';
+
+/* 3. Компонентните стилове */
+@import './styles/components/analyzer.css';
+@import './styles/components/auth-card.css';
+@import './styles/components/badges-buttons.css';
+@import './styles/components/data-table.css';
+@import './styles/components/project-card.css';
