@@ -1,0 +1,9 @@
+@import './variables.css';
+@import './reset.css';
+@import './layout.css';
+@import './navigation.css';
+@import './components/badges-buttons.css';
+@import './components/auth-card.css';
+@import './components/project-card.css';
+@import './components/analyzer.css';
+@import './components/data-table.css';
