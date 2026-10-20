@@ -7,8 +7,9 @@ export interface User {
   created_at: string;
 }
 
-export interface UserSession {
+export interface AuthResponse {
   access_token: string;
   token_type: string;
-  user: User;
+  user_id: string;
+  role: UserRole;
 }
