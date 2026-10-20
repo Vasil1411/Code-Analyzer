@@ -1,4 +1,4 @@
-export type ProjectCategory = 'security' | 'clean-code' | 'performance';
+export type ProjectCategory = 'Security' | 'Clean Code' | 'Performance' | 'Architecture';
 
 export interface Project {
   id: string;
