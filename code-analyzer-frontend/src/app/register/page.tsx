@@ -1,63 +1,108 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { userService } from '@/services/userService';
 
-export default function RegisterPage() {
+// 1. Изнасяме цялата логика в отделен вътрешен компонент
+function RegisterContent() {
+  const searchParams = useSearchParams();
+  const token = searchParams.get('token');
+
   const [email, setEmail] = useState('');
+  const [role, setRole] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState('developer');
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [registering, setRegistering] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    if (!token) {
+      setError('Access denied: Registration requires a valid invitation link.');
+      setLoading(false);
+      return;
+    }
+
+    userService.verifyInviteToken(token)
+      .then((res) => {
+        setEmail(res.email);
+        setRole(res.role);
+        setLoading(false);
+      })
+      .catch((err: any) => {
+        setError(err.message || 'Invalid or expired invitation token.');
+        setLoading(false);
+      });
+  }, [token]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!token) return;
+
     setError('');
-    setLoading(true);
+    setRegistering(true);
 
     try {
-      await userService.register({ email, password, role });
-      // След успешна регистрация пращаме потребителя към лог ин
-      router.push('/login');
+      await userService.registerByInvite({ token, password });
+      router.push('/login?registered=true');
     } catch (err: any) {
-      setError(err.message || 'Грешка при регистрация');
-    } finally {
-      setLoading(false);
+      setError(err.message || 'Registration failed.');
+      setRegistering(false);
     }
   };
+
+  if (loading) {
+    return (
+      <main className="app__main" style={{ textAlign: 'center', padding: '6rem 1rem', color: '#8b949e' }}>
+        Verifying invitation token...
+      </main>
+    );
+  }
+
+  if (error && !email) {
+    return (
+      <main className="app__main" style={{ margin: '0 auto', maxWidth: '500px', padding: '4rem 1rem' }}>
+        <div style={{ padding: '2rem', background: '#161b22', border: '1px solid #30363d', borderRadius: '12px', textAlign: 'center', color: '#f85149' }}>
+          <h2>Invitation Required</h2>
+          <p style={{ marginTop: '1rem', color: '#8b949e' }}>{error}</p>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="app__main" style={{ margin: '0 auto', maxWidth: '600px', padding: '4rem 1rem' }}>
       <header className="view__header" style={{ marginBottom: '2rem' }}>
         <div>
-          <p className="view__eyebrow">Access</p>
-          <h1 className="view__title">Registration</h1>
-          <p className="view__subtitle">Create a new platform account.</p>
+          <p className="view__eyebrow">Enterprise Access</p>
+          <h1 className="view__title">Complete Registration</h1>
+          <p className="view__subtitle">
+            You are invited to join as <strong style={{ textTransform: 'uppercase', color: '#58a6ff' }}>{role}</strong>.
+          </p>
         </div>
       </header>
       <div className="auth">
         <article className="auth-card auth-card--accent" style={{ width: '100%' }}>
           <header className="auth-card__header">
-            <h2 className="auth-card__title">Create account</h2>
-            <p className="auth-card__subtitle">Start scanning in under a minute.</p>
+            <h2 className="auth-card__title">Set your password</h2>
+            <p className="auth-card__subtitle">Secure your workspace account.</p>
           </header>
 
-          {error && <p style={{ color: 'red', marginBottom: '1rem' }}>{error}</p>}
+          {error && <p style={{ color: '#ef4444', marginBottom: '1rem', fontSize: '0.9rem' }}>{error}</p>}
 
           <form className="auth-card__form" onSubmit={handleSubmit}>
             <label className="field">
-              <span className="field__label">Email</span>
+              <span className="field__label">Email (Locked by invitation)</span>
               <input 
                 className="field__input" 
                 type="email" 
-                placeholder="you@company.dev" 
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required 
+                disabled
+                style={{ background: '#0d1117', color: '#8b949e', cursor: 'not-allowed' }}
               />
             </label>
+
             <label className="field">
               <span className="field__label">Password</span>
               <input 
@@ -70,19 +115,9 @@ export default function RegisterPage() {
                 required 
               />
             </label>
-            <label className="field">
-              <span className="field__label">Role</span>
-              <select 
-                className="field__input" 
-                value={role}
-                onChange={(e) => setRole(e.target.value)}
-              >
-                <option value="developer">Developer</option>
-                <option value="admin">Admin</option>
-              </select>
-            </label>
-            <button className="btn btn--secondary btn--block" type="submit" disabled={loading}>
-              {loading ? 'Registering...' : 'Register'}
+
+            <button className="btn btn--secondary btn--block" type="submit" disabled={registering}>
+              {registering ? 'Creating account...' : 'Create Account'}
             </button>
           </form>
 
@@ -92,5 +127,13 @@ export default function RegisterPage() {
         </article>
       </div>
     </main>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={<div style={{ textAlign: 'center', padding: '4rem', color: '#8b949e' }}>Loading...</div>}>
+      <RegisterContent />
+    </Suspense>
   );
 }

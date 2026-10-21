@@ -27,14 +27,11 @@ export default function Sidebar() {
           
           {/* 1. Видимо за ВСИЧКИ логнати потребители (Developer & Admin) */}
           {user && (
-            <>
-              <li>
-                <Link className="nav__link" href="/dashboard">
-                  <Icon d="M3 7h7l2 2h9v10H3z" />Projects
-                </Link>
-              </li>
-              
-            </>
+            <li>
+              <Link className="nav__link" href="/dashboard">
+                <Icon d="M3 7h7l2 2h9v10H3z" />Projects
+              </Link>
+            </li>
           )}
 
           {/* 2. Видимо САМО за ADMIN */}
@@ -48,18 +45,11 @@ export default function Sidebar() {
 
           {/* 3. Видимо САМО ако потребителят НЕ Е логнат (Гости) */}
           {!user && !loading && (
-            <>
-              <li>
-                <Link className="nav__link" href="/login">
-                  <Icon d="M15 3h4v18h-4M10 17l5-5-5-5M15 12H3" />Sign in
-                </Link>
-              </li>
-              <li>
-                <Link className="nav__link" href="/register">
-                  <Icon d="M15 3h4v18h-4M10 17l5-5-5-5M15 12H3" />Register
-                </Link>
-              </li>
-            </>
+            <li>
+              <Link className="nav__link" href="/login">
+                <Icon d="M15 3h4v18h-4M10 17l5-5-5-5M15 12H3" />Sign in
+              </Link>
+            </li>
           )}
 
         </ul>
