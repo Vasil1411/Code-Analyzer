@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field, field_validator
 from typing import Optional
 
-# Разрешени категории за проектите
+
 ALLOWED_CATEGORIES = ["Security", "Clean Code", "Performance", "Architecture"]
 
 class RegisterPayload(BaseModel):
@@ -27,4 +27,17 @@ class ProjectCreate(BaseModel):
 
 class CodePayload(BaseModel):
     code: str = Field(..., min_length=1, description="Python source code to analyze")
-    project_id: str = Field(..., min_length=5, description="Valid project ID")
+
+
+class RoleUpdatePayload(BaseModel):
+    role: str = Field(..., description="New role: 'developer' or 'admin'")
+
+
+class InvitePayload(BaseModel):
+    email: str = Field(..., description="Email address of the user to invite")
+    role: str = Field(..., description="Role: developer or admin")
+
+
+class InviteRegisterPayload(BaseModel):
+    token: str
+    password: str = Field(..., min_length=6, description="Password must be at least 6 characters long")
