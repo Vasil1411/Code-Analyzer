@@ -4,7 +4,7 @@ from typing import Optional
 from fastapi import HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from passlib.context import CryptContext
-from database import get_user_by_email, create_user_in_db
+from database import get_user_by_email, create_user_in_db, get_user_by_id
 
 SECRET_KEY = "my_super_secret_jwt_key_change_in_production"
 ALGORITHM = "HS256"
@@ -46,14 +46,32 @@ def decode_token(credentials: Optional[HTTPAuthorizationCredentials]) -> dict:
         raise HTTPException(status_code=401, detail="Invalid authorization token.")
 
 def verify_token(credentials: Optional[HTTPAuthorizationCredentials] = Depends(security_bearer)) -> str:
-    """Проверява токена за общ потребител/разработчик и връща user_id."""
     payload = decode_token(credentials)
     user_id: str = payload.get("sub")
     if not user_id:
         raise HTTPException(status_code=401, detail="Invalid token payload.")
+    
+    # НОВО: Проверяваме дали потребителят наистина съществува в базата данни
+    user = get_user_by_id(user_id) # Напиши си такава функция в database.py, ако нямаш
+    if not user:
+        raise HTTPException(status_code=401, detail="User no longer exists.")
+        
     return user_id
 
 def verify_admin_token(credentials: Optional[HTTPAuthorizationCredentials] = Depends(security_bearer)) -> str:
+    payload = decode_token(credentials)
+    user_id: str = payload.get("sub")
+    role: str = payload.get("role")
+    
+    if role != "admin":
+        raise HTTPException(status_code=403, detail="Access denied: Admin role required.")
+        
+    # НОВО: Същата проверка за админския токен
+    user = get_user_by_id(user_id)
+    if not user:
+        raise HTTPException(status_code=401, detail="User no longer exists.")
+        
+    return user_id
     """Проверява токена и стриктно изисква роля 'admin'."""
     payload = decode_token(credentials)
     user_id: str = payload.get("sub")

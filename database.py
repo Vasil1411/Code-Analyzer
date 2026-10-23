@@ -154,10 +154,35 @@ def create_invitation_in_db(email: str, role: str, token: str, expires_at: str):
 def get_invitation_by_token(token: str):
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM invitations WHERE token = ? AND status = 'pending'", (token,))
+    # Търсим поканата по токен (тя може да е pending)
+    cursor.execute("SELECT * FROM invitations WHERE token = ?", (token,))
     row = cursor.fetchone()
     conn.close()
-    return dict(row) if row else None
+    
+    if not row:
+        return None
+        
+    inv = dict(row)
+    
+    # ПРОВЕРКА ЗА 24 ЧАСА: Ако е pending, но времето е изтекло -> маркираме го като expired и връщаме None
+    if inv["status"] == "pending":
+        expires_at_dt = datetime.fromisoformat(inv["expires_at"])
+        if datetime.utcnow() > expires_at_dt:
+            # Обновяваме в базата на изтекъл
+            conn_update = get_connection()
+            curr_update = conn_update.cursor()
+            curr_update.execute("UPDATE invitations SET status = 'expired' WHERE token = ?", (token,))
+            conn_update.commit()
+            conn_update.close()
+            
+            inv["status"] = "expired"
+            return None # Не позволяваме използване на изтекъл токен
+            
+    # Ако междувременно е била expired или accepted, не я връщаме за регистрация
+    if inv["status"] != "pending":
+        return None
+        
+    return inv
 
 def mark_invitation_as_accepted(token: str):
     conn = get_connection()
@@ -176,9 +201,27 @@ def get_all_invitations_from_db():
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM invitations ORDER BY expires_at DESC")
     rows = cursor.fetchall()
-    conn.close()
-    return [dict(row) for row in rows]
+    
+    current_time = datetime.utcnow()
+    processed_invitations = []
+    has_changes = False
 
+    for row in rows:
+        inv = dict(row)
+        if inv["status"] == "pending":
+            expires_at_dt = datetime.fromisoformat(inv["expires_at"])
+            if current_time > expires_at_dt:
+                inv["status"] = "expired"
+                # Използваме същия курсор и същата връзка без да отваряме нова!
+                cursor.execute("UPDATE invitations SET status = 'expired' WHERE token = ?", (inv["token"],))
+                has_changes = True
+        processed_invitations.append(inv)
+        
+    if has_changes:
+        conn.commit()
+        
+    conn.close()
+    return processed_invitations
 
 # --- ПРОЕКТИ ---
 def create_project_in_db(user_id: str, name: str, category: str, description: str = ""):
