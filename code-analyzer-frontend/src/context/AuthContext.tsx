@@ -31,6 +31,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           .join('')
       );
       const payload = JSON.parse(jsonPayload);
+
+      // 1. Проверяваме дали токенът е изтекъл (JWT exp е в секунди, а Date.now() в милисекунди)
+      if (payload.exp && Date.now() >= payload.exp * 1000) {
+        return null; // Изтекъл токен
+      }
+
       return {
         id: payload.sub,
         email: payload.email,
@@ -45,10 +51,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const token = localStorage.getItem('access_token');
     if (token) {
       const userData = parseToken(token);
-      if (userData) setUser(userData);
+      if (userData) {
+        setUser(userData);
+      } else {
+        
+        localStorage.removeItem('access_token');
+        document.cookie = 'access_token=; path=/; max-age=0;';
+        router.push('/login');
+      }
+    } else {
+      
     }
     setLoading(false);
-  }, []);
+  }, [router]);
 
   const login = async (email: string, password: string) => {
     const data = await userService.login({ email, password });
@@ -62,14 +77,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(userData);
     }
 
-    // Tuk izpolzvame router.refresh() i push, za da se obnowi syrtyrnoto syshtoyanie i kesh
     router.push('/dashboard');
     router.refresh();
   };
 
   const logout = () => {
     localStorage.removeItem('access_token');
-    document.cookie = 'access_token=; path=/; max-age=0; path=/';
+    document.cookie = 'access_token=; path=/; max-age=0;';
     setUser(null);
     router.push('/login');
     router.refresh();

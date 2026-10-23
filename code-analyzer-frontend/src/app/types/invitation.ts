@@ -4,5 +4,5 @@ export interface Invitation {
   role: string;
   token: string;
   expires_at: string;
-  status: 'pending' | 'accepted';
+  status: 'pending' | 'accepted' | 'expired';
 }
