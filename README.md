@@ -48,6 +48,9 @@ code-analyzer/
 ├── database.py                # Database connection & initial seeding
 ├── main.py                    # FastAPI application entry point
 └── requirements.txt           # Python dependencies
+
+
+
 ⚙️ Installation & Setup
 Prerequisites
 Python 3.8+
@@ -60,6 +63,8 @@ Git
 Bash
 git clone [https://github.com/Vasil1411/Code-Analyzer.git](https://github.com/Vasil1411/Code-Analyzer.git)
 cd Code-Analyzer
+
+
 2. Backend Setup
 Bash
 # Create and activate virtual environment
@@ -74,6 +79,7 @@ pip install -r requirements.txt
 uvicorn main:app --reload
 The backend will be available at http://localhost:8000.(Note: If the database is empty, a default system admin will be automatically seeded: admin@system.com / аdmin123)
 
+
 3. Frontend Setup
 Bash
 # Navigate to frontend directory
@@ -85,6 +91,7 @@ npm install
 # Run the Next.js development server
 npm run dev
 The frontend will be available at http://localhost:3000.
+
 
 🔒 Security Highlights
 Database-Level User Existence Checks: Unlike standard JWT implementations that only verify token signatures, this system verifies on every protected request whether the user still exists in the database. If an account is deleted, the token instantly becomes invalid.
