@@ -1,9 +1,11 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { adminService} from '@/services/adminService';
+import { adminService } from '@/services/adminService';
 import { User } from '@/app/types/user';
 import { Invitation } from '@/app/types/invitation';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
 
 const initials = (email: string) => {
   const namePart = email.split('@')[0];
@@ -28,6 +30,10 @@ export default function AdminPage() {
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [inviteSuccessMsg, setInviteSuccessMsg] = useState<string | null>(null);
 
+  const router = useRouter();
+  const { user: currentUser } = useAuth();
+  const {logout} = useAuth();
+
   const fetchData = async () => {
     try {
       const [usersRes, invitesRes] = await Promise.all([
@@ -47,15 +53,27 @@ export default function AdminPage() {
     fetchData();
   }, []);
 
-  const confirmDeleteUser = async () => {
+ const confirmDeleteUser = async () => {
     if (!userToDelete) return;
 
     setActionLoading(userToDelete.id);
     setError(null);
     try {
       await adminService.deleteUser(userToDelete.id);
-      setUsers(users.filter((u) => u.id !== userToDelete.id));
+
+      // Проверяваме дали изтритият акаунт е този, с който сме влезли в момента
+      const isSelfDeletion = currentUser?.id === userToDelete.id;
+
       setUserToDelete(null);
+
+      if (isSelfDeletion) {
+        // Ако сме изтрили себе си -> извикваме глобалния logout от AuthContext
+        logout();
+      } else {
+        // Иначе само презареждаме таблицата на живо
+        setUsers(users.filter((u) => u.id !== userToDelete.id));
+        await fetchData();
+      }
     } catch (err: any) {
       setError(err.message || 'Error deleting user.');
     } finally {
@@ -69,7 +87,7 @@ export default function AdminPage() {
     setError(null);
     try {
       await adminService.updateUserRole(userId, newRole);
-      setUsers(users.map((u) => (u.id === userId ? { ...u, role: newRole } : u)));
+      await fetchData(); 
     } catch (err: any) {
       setError(err.message || 'Error updating user role.');
     } finally {
@@ -90,7 +108,7 @@ export default function AdminPage() {
       setInviteSuccessMsg(res.message);
       setInviteEmail('');
       setInviteRole('developer');
-      fetchData();
+      await fetchData(); 
     } catch (err: any) {
       setInviteError(err.message || 'Error sending invitation.');
     } finally {
@@ -242,9 +260,25 @@ export default function AdminPage() {
                         padding: '2px 8px',
                         borderRadius: '12px',
                         fontSize: '0.8rem',
-                        background: inv.status === 'pending' ? 'rgba(234, 179, 8, 0.15)' : 'rgba(34, 197, 94, 0.15)',
-                        color: inv.status === 'pending' ? '#eab308' : '#22c55e',
-                        border: `1px solid ${inv.status === 'pending' ? 'rgba(234, 179, 8, 0.3)' : 'rgba(34, 197, 94, 0.3)'}`
+                        background: 
+                          inv.status === 'pending' 
+                            ? 'rgba(234, 179, 8, 0.15)' 
+                            : inv.status === 'expired' 
+                            ? 'rgba(239, 68, 68, 0.15)' 
+                            : 'rgba(34, 197, 94, 0.15)',
+                        color: 
+                          inv.status === 'pending' 
+                            ? '#eab308' 
+                            : inv.status === 'expired' 
+                            ? '#ef4444' 
+                            : '#22c55e',
+                        border: `1px solid ${
+                          inv.status === 'pending' 
+                            ? 'rgba(234, 179, 8, 0.3)' 
+                            : inv.status === 'expired' 
+                            ? 'rgba(239, 68, 68, 0.3)' 
+                            : 'rgba(34, 197, 94, 0.3)'
+                        }`
                       }}>
                         {inv.status}
                       </span>
