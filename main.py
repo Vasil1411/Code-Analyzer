@@ -4,9 +4,12 @@ from routers.auth_router import router as auth_router
 from routers.projects_router import router as projects_router
 from routers.admin_router import router as admin_router
 from routers.invite_router import router as invite_router
+from dotenv import load_dotenv
 
 
-# --- ИНИЦИАЛИЗАЦИЯ НА FASTAPI ---
+
+load_dotenv()  
+
 app = FastAPI(title="SaaS Code Analyzer Enterprise Backend", version="7.0")
 
 app.add_middleware(

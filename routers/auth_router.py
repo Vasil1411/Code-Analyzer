@@ -3,6 +3,7 @@ from schemas.schemas import RegisterPayload, LoginPayload, InviteRegisterPayload
 from auth import register_user, login_user
 from database import get_invitation_by_token, get_user_by_email, create_user_in_db, mark_invitation_as_accepted
 from passlib.context import CryptContext
+from datetime import datetime
 
 
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
@@ -22,13 +23,23 @@ def api_login(payload: LoginPayload):
 @router.post("/register-by-invite")
 def api_register_by_invite(payload: InviteRegisterPayload):
     """Регистрира нов потребител строго чрез покана (токен) от базата данни."""
+    """Регистрира нов потребител строго чрез покана (токен) от базата данни."""
     # 1. Проверяваме токена в таблицата с покани
     inv = get_invitation_by_token(payload.token)
     if not inv:
         raise HTTPException(status_code=400, detail="Invalid or expired invitation token.")
     
+    # === ТУК ДОБАВЯМЕ ПРОВЕРКАТА ЗА 24 ЧАСА ===
+    if inv.get("status") == "expired":
+        raise HTTPException(status_code=400, detail="This invitation has expired (24h limit reached).")
+        
+    expires_at_dt = datetime.fromisoformat(inv["expires_at"])
+    if datetime.utcnow() > expires_at_dt:
+        raise HTTPException(status_code=400, detail="Invitation token has expired.")
+    # ==========================================
+
     email = inv["email"]
-    role = inv["role"] # Ролята се взима автоматично от поканата!
+    role = inv["role"]
 
     # 2. Проверяваме дали вече има такъв потребител
     existing_user = get_user_by_email(email)

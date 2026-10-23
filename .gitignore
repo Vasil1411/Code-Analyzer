@@ -12,3 +12,5 @@ code_analyzer.db
 node_modules/
 .next/
 dist/
+
+.env
